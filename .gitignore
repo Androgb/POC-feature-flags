@@ -1,0 +1,138 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs
+*/dist/
+*/build/
+backend/dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage
+coverage/
+*.lcov
+
+# Temporary files
+.tmp/
+
+# Cache directories and files
+.cache/
+.parcel-cache/
+.nuxt/
+.next/
+.vite/
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
+
+# Node.js native compilation cache
+.node-gyp/
+build/
+*.node
+.python-version
+
+# NPM/Yarn cache and binaries
+.npm/
+.yarn-integrity
+.pnp.*
+.yarn/
+node_modules/.cache/
+
+# Package manager cache
+.npm/
+.yarn/
+yarn.lock
+pnpm-lock.yaml
+.pnpm-store/
+
+# Runtime cache
+.turbo/
+.nitro/
+.output/
+.vercel/
+.netlify/
+
+# Test cache
+.nyc_output/
+.jest/
+coverage/
+
+# Misc cache
+*.pid
+*.seed
+*.pid.lock 
+
+# node-gyp cache and native build artifacts
+.cache/
+.cache/**
+.gyp/
+.gyp/**
+node-gyp/
+node-gyp/**
+*.node
+*.obj
+*.so
+*.dll
+*.dylib
+*.a
+*.lib
+
+# Excluir cachés en cualquier subdirectorio
+**/.cache/
+**/node-gyp/
+**/gyp/
+**/build/
+**/Release/
+**/Debug/
+
+# Excluir archivos de C/C++ temporales
+*.o
+*.lo
+*.s
+*.swp
+*.swo
+*.tmp
+*.pch
+*.pdb
+*.exp
+*.idb
+*.ilk
+*.res
+*.rc
+*.def
+*.map
+*.lst
+*.out
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib 
