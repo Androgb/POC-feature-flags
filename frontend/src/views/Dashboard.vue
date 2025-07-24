@@ -2,25 +2,29 @@
   <div class="dashboard">
     <h1>📊 Dashboard - Feature Flags Testing</h1>
     
-    <!-- Estado de ConfigCat -->
-    <div class="configcat-info" :class="{ connected: flagsStore.isConfigCatConnected }">
-      <h2>🔗 Estado de ConfigCat</h2>
-      <div class="configcat-details">
+    <!-- Estado del Proveedor -->
+    <div class="provider-info" :class="{ connected: flagsStore.isConnected }">
+      <h2>🔗 Estado de {{ flagsStore.activeProvider.toUpperCase() }}</h2>
+      <div class="provider-details">
+        <div class="detail">
+          <strong>Proveedor:</strong> 
+          <span class="provider-name">{{ flagsStore.activeProvider.toUpperCase() }}</span>
+        </div>
         <div class="detail">
           <strong>Estado:</strong> 
-          <span :class="{ connected: flagsStore.isConfigCatConnected }">
-            {{ flagsStore.isConfigCatConnected ? '✅ Conectado' : '❌ Desconectado' }}
+          <span :class="{ connected: flagsStore.isConnected }">
+            {{ flagsStore.isConnected ? '✅ Conectado' : '❌ Desconectado' }}
           </span>
         </div>
         <div class="detail">
-          <strong>SDK Key:</strong> {{ flagsStore.configCatInfo.sdkKey }}
-        </div>
-        <div class="detail">
-          <strong>Cliente:</strong> {{ flagsStore.configCatInfo.clientInitialized ? 'Inicializado' : 'No inicializado' }}
+          <strong>Dashboard:</strong> 
+          <a :href="flagsStore.providerInfo.dashboardUrl" target="_blank">
+            {{ flagsStore.providerInfo.dashboardUrl }}
+          </a>
         </div>
         <div class="detail">
           <strong>Fuente de flags:</strong> 
-          {{ flagsStore.isConfigCatConnected ? 'ConfigCat Directo' : 'Backend (ConfigCat)' }}
+          {{ flagsStore.isConnected ? `${flagsStore.activeProvider.toUpperCase()} Directo` : `Backend (${flagsStore.activeProvider.toUpperCase()})` }}
         </div>
       </div>
     </div>
@@ -40,28 +44,28 @@
           <h3>💳 Pagos Habilitados</h3>
           <p class="flag-value">{{ flagsStore.enablePayments ? 'ON' : 'OFF' }}</p>
           <p class="flag-description">Kill-switch para sistema de pagos</p>
-          <p class="flag-source">📡 Desde ConfigCat</p>
+          <p class="flag-source">📡 Desde {{ flagsStore.activeProvider.toUpperCase() }}</p>
         </div>
         
         <div class="flag-card">
           <h3>🔄 API Version</h3>
           <p class="flag-value">{{ flagsStore.ordersApiVersion }}</p>
           <p class="flag-description">Versión de API para órdenes</p>
-          <p class="flag-source">📡 Desde ConfigCat</p>
+          <p class="flag-source">📡 Desde {{ flagsStore.activeProvider.toUpperCase() }}</p>
         </div>
         
         <div class="flag-card" :class="{ 'flag-enabled': flagsStore.newFeatureEnabled }">
           <h3>✨ Nueva Feature</h3>
           <p class="flag-value">{{ flagsStore.newFeatureEnabled ? 'ON' : 'OFF' }}</p>
           <p class="flag-description">Roll-out gradual por usuario</p>
-          <p class="flag-source">📡 Desde ConfigCat</p>
+          <p class="flag-source">📡 Desde {{ flagsStore.activeProvider.toUpperCase() }}</p>
         </div>
         
         <div class="flag-card" :class="{ 'flag-error': flagsStore.simulateErrors }">
           <h3>⚠️ Simular Errores</h3>
           <p class="flag-value">{{ flagsStore.simulateErrors ? 'ON' : 'OFF' }}</p>
           <p class="flag-description">Para testing de rollback</p>
-          <p class="flag-source">📡 Desde ConfigCat</p>
+          <p class="flag-source">📡 Desde {{ flagsStore.activeProvider.toUpperCase() }}</p>
         </div>
       </div>
     </div>
@@ -80,8 +84,8 @@
           <button @click="refreshFlags" class="btn btn-primary" :disabled="flagsStore.loading">
             {{ flagsStore.loading ? 'Cargando...' : 'Refrescar Flags' }}
           </button>
-          <button @click="refreshFromConfigCat" class="btn btn-configcat" :disabled="flagsStore.loading || !flagsStore.isConfigCatConnected">
-            {{ flagsStore.loading ? 'Cargando...' : 'Refrescar desde ConfigCat' }}
+          <button @click="refreshFromProvider" class="btn btn-provider" :disabled="flagsStore.loading || !flagsStore.isConnected">
+            {{ flagsStore.loading ? 'Cargando...' : `Refrescar desde ${flagsStore.activeProvider.toUpperCase()}` }}
           </button>
         </div>
       </div>
@@ -104,11 +108,13 @@
       <p>Para reactivarlos, cambia el flag <code>enable_payments</code> en el dashboard de ConfigCat.</p>
     </div>
 
-    <!-- Instrucciones para ConfigCat -->
-    <div class="configcat-instructions">
-      <h2>🎮 Testing con ConfigCat</h2>
+    <!-- Instrucciones para el Proveedor -->
+    <div class="provider-instructions">
+      <h2>🎮 Testing con {{ flagsStore.activeProvider.toUpperCase() }}</h2>
       <div class="instructions-content">
-        <p><strong>Dashboard de ConfigCat:</strong> <a href="https://app.configcat.com" target="_blank">https://app.configcat.com</a></p>
+        <p><strong>Dashboard de {{ flagsStore.activeProvider.toUpperCase() }}:</strong> 
+          <a :href="flagsStore.providerInfo.dashboardUrl" target="_blank">{{ flagsStore.providerInfo.dashboardUrl }}</a>
+        </p>
         <p><strong>Flags configurados:</strong></p>
         <ul>
           <li><code>enable_payments</code> (boolean) - Kill-switch para pagos</li>
@@ -117,7 +123,7 @@
           <li><code>new_feature_enabled</code> (boolean) - Nueva feature con roll-out gradual</li>
           <li><code>simulate_errors</code> (boolean) - Simular errores para rollback</li>
         </ul>
-        <p><strong>Testing:</strong> Cambia los valores en ConfigCat y verás los cambios reflejados aquí en ~30 segundos.</p>
+        <p><strong>Testing:</strong> Cambia los valores en {{ flagsStore.activeProvider.toUpperCase() }} y verás los cambios reflejados aquí en ~30 segundos.</p>
       </div>
     </div>
   </div>
@@ -130,8 +136,8 @@ import { onMounted } from 'vue'
 const flagsStore = useFlagsStore()
 
 onMounted(() => {
-  // Iniciar auto-reload para detectar cambios de flags
-  flagsStore.startAutoReload()
+  // El auto-reload ya se inicia en App.vue
+  console.log('Dashboard cargado')
 })
 
 function changeUser(userNumber: number) {
@@ -142,9 +148,9 @@ function refreshFlags() {
   flagsStore.loadFlags()
 }
 
-function refreshFromConfigCat() {
-  if (flagsStore.isConfigCatConnected) {
-    flagsStore.loadFlagsFromConfigCat()
+function refreshFromProvider() {
+  if (flagsStore.isConnected) {
+    flagsStore.loadFlags()
   }
 }
 
@@ -152,6 +158,8 @@ function formatDate(date: Date | null) {
   if (!date) return 'Nunca'
   return date.toLocaleString('es-ES')
 }
+
+
 </script>
 
 <style scoped>
@@ -160,7 +168,7 @@ function formatDate(date: Date | null) {
   margin: 0 auto;
 }
 
-.configcat-info {
+.provider-info {
   background: #fff5f5;
   border: 2px solid #e74c3c;
   border-radius: 8px;
@@ -168,16 +176,22 @@ function formatDate(date: Date | null) {
   margin: 2rem 0;
 }
 
-.configcat-info.connected {
+.provider-info.connected {
   background: #f8fff9;
   border-color: #27ae60;
 }
 
-.configcat-details {
+.provider-details {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1rem;
   margin-top: 1rem;
+}
+
+.provider-name {
+  font-weight: bold;
+  color: #3498db;
+  text-transform: uppercase;
 }
 
 .detail strong {
@@ -296,12 +310,12 @@ function formatDate(date: Date | null) {
   background: #7f8c8d;
 }
 
-.btn-configcat {
+.btn-provider {
   background: #f39c12;
   color: white;
 }
 
-.btn-configcat:hover:not(:disabled) {
+.btn-provider:hover:not(:disabled) {
   background: #e67e22;
 }
 
@@ -334,7 +348,7 @@ function formatDate(date: Date | null) {
   text-align: center;
 }
 
-.configcat-instructions {
+.provider-instructions {
   background: white;
   border: 2px solid #3498db;
   border-radius: 8px;

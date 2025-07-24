@@ -1,18 +1,18 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { FlagsService } from '../flags/flags.service';
-import { ConfigCatService } from '../flags/configcat.service';
 
 @Controller('health')
 export class HealthController {
   constructor(
-    private readonly flagsService: FlagsService,
-    private readonly configCatService: ConfigCatService
+    private readonly flagsService: FlagsService
   ) {}
 
   // Endpoint principal de health check
   @Get()
   async getHealth() {
-    const isConfigCatConnected = await this.configCatService.isConfigCatConnected();
+    const isConnected = await this.flagsService.isConnected();
+    const clientInfo = this.flagsService.getClientInfo();
+    const provider = process.env.FEATURE_FLAGS_PROVIDER || 'configcat';
     
     return {
       status: 'ok',
@@ -20,9 +20,10 @@ export class HealthController {
       service: 'payments-api',
       version: '1.0.0',
       environment: process.env.NODE_ENV || 'development',
-      configcat: {
-        connected: isConfigCatConnected,
-        info: this.configCatService.getClientInfo()
+      provider: {
+        name: provider,
+        connected: isConnected,
+        info: clientInfo
       }
     };
   }
@@ -31,14 +32,15 @@ export class HealthController {
   @Get('flags')
   async getHealthFlags(@Query('userId') userId?: string) {
     const startTime = Date.now();
+    const provider = process.env.FEATURE_FLAGS_PROVIDER || 'configcat';
     
     try {
-      // Llamada real a ConfigCat
+      // Llamada real al proveedor activo
       const enablePayments = await this.flagsService.getFlag('enable_payments', userId, true);
       const allFlags = await this.flagsService.getAllFlags(userId);
       
       const responseTime = Date.now() - startTime;
-      const isConnected = await this.configCatService.isConfigCatConnected();
+      const isConnected = await this.flagsService.isConnected();
       
       return {
         status: 'ok',
@@ -50,15 +52,16 @@ export class HealthController {
         timestamp: new Date(),
         environment: process.env.NODE_ENV || 'development',
         userId: userId || 'anonymous',
-        configcat: {
+        provider: {
+          name: provider,
           connected: isConnected,
-          info: this.configCatService.getClientInfo()
+          info: this.flagsService.getClientInfo()
         },
         // Información útil para debugging de feature flags
         debug: {
           totalFlags: Object.keys(allFlags).length,
           flagsChecked: ['enable_payments'],
-          source: 'ConfigCat',
+          source: provider,
           cacheMiss: false
         }
       };
@@ -70,38 +73,41 @@ export class HealthController {
         error: error.message,
         responseTime: `${responseTime}ms`,
         timestamp: new Date(),
-        configcat: {
+        provider: {
+          name: provider,
           connected: false,
-          error: 'ConfigCat connection failed'
+          error: `${provider} connection failed`
         },
         fallback: {
           used: true,
-          flags: this.configCatService.getFallbackFlags()
+          flags: this.flagsService.getFallbackFlags()
         }
       };
     }
   }
 
-  // Endpoint para verificar conectividad con ConfigCat (prueba #14)
+  // Endpoint para verificar conectividad con el proveedor activo (prueba #14)
   @Get('flags/connectivity')
   async getFlagsConnectivity() {
     const startTime = Date.now();
+    const provider = process.env.FEATURE_FLAGS_PROVIDER || 'configcat';
     
     try {
-      const isConnected = await this.configCatService.isConfigCatConnected();
+      const isConnected = await this.flagsService.isConnected();
       
       if (!isConnected) {
-        const fallbackFlags = this.configCatService.getFallbackFlags();
+        const fallbackFlags = this.flagsService.getFallbackFlags();
         return {
           status: 'degraded',
           mode: 'fallback',
           flags: fallbackFlags,
           responseTime: `${Date.now() - startTime}ms`,
           timestamp: new Date(),
-          message: 'ConfigCat no disponible - usando valores fallback',
-          configcat: {
+          message: `${provider} no disponible - usando valores fallback`,
+          provider: {
+            name: provider,
             connected: false,
-            info: this.configCatService.getClientInfo()
+            info: this.flagsService.getClientInfo()
           }
         };
       }
@@ -113,15 +119,16 @@ export class HealthController {
         flags,
         responseTime: `${Date.now() - startTime}ms`,
         timestamp: new Date(),
-        message: 'Conectado a ConfigCat correctamente',
-        configcat: {
+        message: `Conectado a ${provider} correctamente`,
+        provider: {
+          name: provider,
           connected: true,
-          info: this.configCatService.getClientInfo()
+          info: this.flagsService.getClientInfo()
         }
       };
     } catch (error) {
       // Fallback en caso de error
-      const fallbackFlags = this.configCatService.getFallbackFlags();
+      const fallbackFlags = this.flagsService.getFallbackFlags();
       return {
         status: 'error',
         mode: 'fallback',
@@ -129,8 +136,9 @@ export class HealthController {
         responseTime: `${Date.now() - startTime}ms`,
         timestamp: new Date(),
         error: error.message,
-        message: 'Error de ConfigCat - usando valores fallback',
-        configcat: {
+        message: `Error de ${provider} - usando valores fallback`,
+        provider: {
+          name: provider,
           connected: false,
           error: error.message
         }
@@ -138,17 +146,19 @@ export class HealthController {
     }
   }
 
-  // Endpoint para información detallada de ConfigCat
-  @Get('configcat')
-  async getConfigCatInfo() {
-    const isConnected = await this.configCatService.isConfigCatConnected();
-    const clientInfo = this.configCatService.getClientInfo();
+  // Endpoint para información detallada del proveedor activo
+  @Get('provider')
+  async getProviderInfo() {
+    const isConnected = await this.flagsService.isConnected();
+    const clientInfo = this.flagsService.getClientInfo();
+    const provider = process.env.FEATURE_FLAGS_PROVIDER || 'configcat';
     
     return {
-      configcat: {
+      provider: {
+        name: provider,
         connected: isConnected,
         client: clientInfo,
-        auditLog: this.configCatService.getAuditLog(),
+        auditLog: this.flagsService.getAuditLog(),
         timestamp: new Date()
       }
     };

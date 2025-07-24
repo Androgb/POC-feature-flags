@@ -11,14 +11,17 @@ export class FlagsController {
     try {
       const flags = await this.flagsService.getAllFlags(userId);
       const isConnected = await this.flagsService.isConnected();
+      const clientInfo = this.flagsService.getClientInfo();
+      const provider = process.env.FEATURE_FLAGS_PROVIDER || 'configcat';
       
       return {
         flags,
         timestamp: new Date(),
         environment: process.env.NODE_ENV || 'development',
-        configcat: {
+        provider: {
+          name: provider,
           connected: isConnected,
-          info: this.flagsService.getClientInfo()
+          info: clientInfo
         }
       };
     } catch (error) {
@@ -26,9 +29,10 @@ export class FlagsController {
         error: error.message,
         flags: this.flagsService.getFallbackFlags(),
         timestamp: new Date(),
-        configcat: {
+        provider: {
+          name: process.env.FEATURE_FLAGS_PROVIDER || 'configcat',
           connected: false,
-          error: 'ConfigCat connection failed'
+          error: `${process.env.FEATURE_FLAGS_PROVIDER || 'configcat'} connection failed`
         }
       };
     }
@@ -44,6 +48,7 @@ export class FlagsController {
     try {
       const value = await this.flagsService.getFlag(key, userId, defaultValue);
       const isConnected = await this.flagsService.isConnected();
+      const provider = process.env.FEATURE_FLAGS_PROVIDER || 'configcat';
       
       return {
         key,
@@ -51,9 +56,10 @@ export class FlagsController {
         userId,
         timestamp: new Date(),
         environment: process.env.NODE_ENV || 'development',
-        configcat: {
+        provider: {
+          name: provider,
           connected: isConnected,
-          source: 'ConfigCat'
+          source: provider
         }
       };
     } catch (error) {
@@ -63,7 +69,8 @@ export class FlagsController {
         userId,
         timestamp: new Date(),
         error: error.message,
-        configcat: {
+        provider: {
+          name: process.env.FEATURE_FLAGS_PROVIDER || 'configcat',
           connected: false,
           source: 'fallback'
         }
@@ -72,25 +79,32 @@ export class FlagsController {
   }
 
   // Endpoint para simular cambios de flags (para pruebas)
-  // NOTA: En ConfigCat real, los cambios se hacen desde el dashboard web
+  // NOTA: En el proveedor real, los cambios se hacen desde el dashboard web
   @Post(':key')
   updateFlag(
     @Param('key') key: string,
     @Body() body: { value: any; userId?: string }
   ) {
+    const provider = process.env.FEATURE_FLAGS_PROVIDER || 'configcat';
     console.log(`🚩 [FlagsController] Solicitud de actualización: ${key} = ${body.value}`);
-    console.log('💡 IMPORTANTE: Para actualizar realmente este flag, ve al dashboard de ConfigCat');
+    console.log(`💡 IMPORTANTE: Para actualizar realmente este flag, ve al dashboard de ${provider}`);
     
     this.flagsService.updateFlag(key, body.value, body.userId || 'test-user');
+    
+    const dashboardUrls = {
+      configcat: 'https://app.configcat.com',
+      launchdarkly: 'https://app.launchdarkly.com'
+    };
     
     return {
       success: true,
       key,
       newValue: body.value,
       timestamp: new Date(),
-      note: 'Este cambio es solo local. Para cambios reales, usa el dashboard de ConfigCat.',
-      configcat: {
-        dashboardUrl: 'https://app.configcat.com',
+      note: `Este cambio es solo local. Para cambios reales, usa el dashboard de ${provider}.`,
+      provider: {
+        name: provider,
+        dashboardUrl: dashboardUrls[provider] || 'https://app.configcat.com',
         info: this.flagsService.getClientInfo()
       }
     };
@@ -99,10 +113,14 @@ export class FlagsController {
   // Endpoint para audit log (prueba #11)
   @Get('audit/log')
   getAuditLog() {
+    const provider = process.env.FEATURE_FLAGS_PROVIDER || 'configcat';
     return {
       auditLog: this.flagsService.getAuditLog(),
       timestamp: new Date(),
-      note: 'En ConfigCat real, el audit log se encuentra en el dashboard web'
+      provider: {
+        name: provider,
+        note: `En ${provider} real, el audit log se encuentra en el dashboard web`
+      }
     };
   }
 
@@ -117,14 +135,16 @@ export class FlagsController {
     }
   }
 
-  // Endpoint para información de ConfigCat
-  @Get('info/configcat')
-  async getConfigCatInfo() {
+  // Endpoint para información del proveedor activo
+  @Get('info/provider')
+  async getProviderInfo() {
     const isConnected = await this.flagsService.isConnected();
     const clientInfo = this.flagsService.getClientInfo();
+    const provider = process.env.FEATURE_FLAGS_PROVIDER || 'configcat';
     
     return {
-      configcat: {
+      provider: {
+        name: provider,
         connected: isConnected,
         client: clientInfo,
         expectedFlags: [

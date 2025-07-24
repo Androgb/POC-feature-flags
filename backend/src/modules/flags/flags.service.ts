@@ -1,44 +1,48 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ConfigCatService } from './configcat.service';
+import { IFeatureFlagsProvider } from './interfaces/feature-flags-provider.interface';
+import { FEATURE_FLAGS_PROVIDER } from './providers/feature-flags-provider.factory';
 
 @Injectable()
 export class FlagsService {
   constructor(
-    private readonly configCatService: ConfigCatService
+    @Inject(FEATURE_FLAGS_PROVIDER)
+    private readonly provider: IFeatureFlagsProvider
   ) {}
 
-  // Obtener valor de flag usando ConfigCat
+  // Obtener valor de flag usando el proveedor seleccionado
   async getFlag(key: string, userId?: string, defaultValue: any = false): Promise<any> {
-    return await this.configCatService.getFlag(key, userId, defaultValue);
+    return await this.provider.getFlag(key, userId, defaultValue);
   }
 
-  // Obtener todos los flags usando ConfigCat
+  // Obtener todos los flags usando el proveedor seleccionado
   async getAllFlags(userId?: string): Promise<Record<string, any>> {
-    return await this.configCatService.getAllFlags(userId);
+    return await this.provider.getAllFlags(userId);
   }
 
-  // Simular actualización de flag (en ConfigCat real se hace desde dashboard)
+  // Simular actualización de flag (se hace desde dashboard del proveedor)
   updateFlag(key: string, value: any, userId: string = 'admin'): void {
     console.log(`🚩 [FlagsService] Actualizando flag ${key} = ${value}`);
-    console.log('💡 Nota: En ConfigCat real, actualiza este flag desde el dashboard web');
+    console.log('💡 Nota: Para actualizar realmente, usar el dashboard del proveedor');
     
     // Registrar en audit log para compatibilidad
-    this.configCatService.updateFlag(key, value, userId);
+    if (this.provider.updateFlag) {
+      this.provider.updateFlag(key, value, userId);
+    }
   }
 
   // Obtener audit log
   getAuditLog(): Array<any> {
-    return this.configCatService.getAuditLog();
+    return this.provider.getAuditLog?.() || [];
   }
 
-  // Health check de conectividad con ConfigCat
+  // Health check de conectividad
   async isConnected(): Promise<boolean> {
-    return await this.configCatService.isConfigCatConnected();
+    return await this.provider.isConnected();
   }
 
-  // Obtener información del cliente ConfigCat
+  // Obtener información del cliente
   getClientInfo(): any {
-    return this.configCatService.getClientInfo();
+    return this.provider.getClientInfo();
   }
 
   // Métodos de compatibilidad con el sistema anterior (síncronos)

@@ -4,8 +4,8 @@
       <div class="nav-container">
         <h1>🚀 API Pagos - Feature Flags</h1>
         <div class="nav-info">
-          <span class="configcat-status" :class="{ connected: flagsStore.isConfigCatConnected }">
-            ConfigCat: {{ flagsStore.isConfigCatConnected ? 'Conectado' : 'Desconectado' }}
+          <span class="provider-status" :class="{ connected: flagsStore.isConnected }">
+            {{ flagsStore.activeProvider.toUpperCase() }}: {{ flagsStore.isConnected ? 'Conectado' : 'Desconectado' }}
           </span>
         </div>
         <div class="nav-links">
@@ -30,18 +30,16 @@ import { useFlagsStore } from './stores/flags'
 const flagsStore = useFlagsStore()
 
 onMounted(async () => {
-  console.log('🚀 [App] Inicializando aplicación con ConfigCat...')
+  console.log('🚀 [App] Inicializando aplicación...')
   
-  // Inicializar ConfigCat primero
-  flagsStore.initConfigCat()
-  
-  // Esperar un poco para que ConfigCat se inicialice
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  
-  // Cargar flags (intentará ConfigCat primero, luego backend como fallback)
+  // Cargar información del proveedor y flags
+  await flagsStore.loadProviderInfo()
   await flagsStore.loadFlags()
   
-  console.log('✅ [App] Aplicación inicializada')
+  // Iniciar auto-reload
+  flagsStore.startAutoReload()
+  
+  console.log('✅ [App] Aplicación inicializada con proveedor:', flagsStore.activeProvider)
 })
 </script>
 
@@ -67,7 +65,7 @@ onMounted(async () => {
   align-items: center;
 }
 
-.configcat-status {
+.provider-status {
   background: #e74c3c;
   color: white;
   padding: 0.25rem 0.5rem;
@@ -77,7 +75,7 @@ onMounted(async () => {
   margin-right: 1rem;
 }
 
-.configcat-status.connected {
+.provider-status.connected {
   background: #27ae60;
 }
 
